@@ -4,7 +4,7 @@ export class Collection {
     this.onOpen=onOpen;this.positions=new Map();this.cards=[];this.target=0;this.frame=0;this.zoom=this.targetZoom=1;
     this.track.addEventListener('scroll',()=>{this.updateProgress();if(!this.frame)this.target=this.track.scrollLeft;},{passive:true});
     this.track.addEventListener('wheel',e=>{e.preventDefault();this.move(Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY);},{passive:false});
-    this.track.addEventListener('pointerdown',e=>{if(e.button!==0)return;cancelAnimationFrame(this.frame);this.frame=0;this.drag={id:e.pointerId,x:e.clientX,left:this.track.scrollLeft};this.moved=false;});
+    this.track.addEventListener('pointerdown',e=>{if(e.button!==0)return;cancelAnimationFrame(this.frame);this.frame=0;this.moved=false;if(e.pointerType==='touch'){this.drag=null;return;}this.drag={id:e.pointerId,x:e.clientX,left:this.track.scrollLeft};this.moved=false;});
     this.track.addEventListener('pointermove',e=>{if(!this.drag||this.drag.id!==e.pointerId)return;const dx=e.clientX-this.drag.x;if(Math.abs(dx)>6){this.moved=true;this.track.setPointerCapture(e.pointerId);this.track.classList.add('dragging');this.track.scrollLeft=this.drag.left-dx;this.target=this.track.scrollLeft;}});
     const release=()=>{this.drag=null;this.track.classList.remove('dragging');};
     this.track.addEventListener('pointerup',release);this.track.addEventListener('pointercancel',release);

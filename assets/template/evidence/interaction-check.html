@@ -33,6 +33,9 @@ $('#run-checks').onclick=async()=>{
  gallery.reset();await sleep(650);const angle=gallery.angle,z=gallery.zoom;zoom(9000);assert(gallery.zoom>z,'圆环未放大');assert(gallery.angle===angle,'缩放误转');const fixed=gallery.zoom;hands.process([sized(1.12)],9200);await sleep(150);assert(gallery.zoom===fixed,'停止后缩放漂移');hands.process([sized(.95)],9300);assert(gallery.zoom<fixed,'远离未缩小');
  gallery.cards[0].click();const cz=collection.targetZoom;zoom(9500);assert(collection.targetZoom>cz,'长卷未缩放');assert($('#detail').hidden,'缩放误点击');collection.cards[0].click();zoom(10000);assert($('#detail-image').style.transform!=='scale(1)','照片未缩放');$('#detail-close').click();$('#collection-back').click();gallery.reset();collection.setZoom(1);
  });
+ await test('触屏长卷交由原生滚动，不捕获触点或改写滚动位置',async()=>{
+ gallery.cards[0].click();collection.move(50);const down=ptr('pointerdown',301,250,350);collection.track.dispatchEvent(down);assert(!collection.frame,'触摸未取消旧缓动');assert(collection.drag===null,'触摸仍进入鼠标拖拽');assert(!down.defaultPrevented,'阻止了原生触摸');assert(getComputedStyle(collection.track).touchAction==='pan-x','未允许原生横向平移');const left=collection.track.scrollLeft;collection.track.dispatchEvent(ptr('pointermove',301,100,350));assert(collection.track.scrollLeft===left,'脚本争抢触摸滚动');collection.track.dispatchEvent(ptr('pointerup',301,100,350));$('#collection-back').click();
+ });
  await test('减少动态效果：目标一帧到位，无惯性',async()=>{
   const old=gallery.reduced;gallery.reduced={matches:true};gallery.velocity=0;gallery.rotate(.8);await sleep(80);assert(Math.abs(gallery.angle-gallery.targetAngle)<1e-6,'仍有插值动画');gallery.reduced=old;gallery.reset();
  });

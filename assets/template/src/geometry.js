@@ -10,9 +10,9 @@ export function cardPose(index, count, angle, radius) {
 }
 export function layoutFor(width, height, count = 12) {
   const mobile = width <= 700;
-  const cardHeight = mobile ? clamp(height * .37, 190, 310) : Math.min(height * .44, width * .285, 450);
+  const cardHeight = mobile ? clamp(height * .28, 150, 235) : Math.min(height * .44, width * .285, 450);
   const cardWidth = cardHeight * 2 / 3;
   const radius = (cardWidth + cardWidth * .1) / (2 * Math.tan(Math.PI / Math.max(8,count)));
-  const fit = mobile ? Math.min(1, width / (cardWidth * 2.2)) : Math.min(1, width * .75 / (radius * 1.9));
+  const fit = mobile ? Math.min(1, width * 1.12 / (radius * 2 + cardWidth)) : Math.min(1, width * .75 / (radius * 1.9));
   return { cardHeight, cardWidth, radius, fit, perspective: Math.max(850, width * 1.35), mobile };
 }

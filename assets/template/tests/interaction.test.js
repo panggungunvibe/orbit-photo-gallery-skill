@@ -83,3 +83,7 @@ test('lateral swipe wins over size changes; small scale noise and folded fingers
  assert.notEqual(e.update([scaledPalm(1.105,.56)],250).mode,'zoom');
  const folded=hand([true,true,true,false]);e.update([folded],300);const larger=folded.map(p=>({...p,x:.5+(p.x-.5)*1.2,y:.6+(p.y-.6)*1.2}));assert.notEqual(e.update([larger],400).mode,'zoom');
 });
+
+test('phone ring fits its full horizontal footprint rather than oversized front cards',()=>{
+ for(const count of [5,8,10])for(const width of [320,390,430]){const l=layoutFor(width,844,count);assert.ok(l.cardWidth*l.fit<width*.4);assert.ok((l.radius*2+l.cardWidth)*l.fit<=width*1.13);}
+});

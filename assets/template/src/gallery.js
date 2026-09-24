@@ -57,11 +57,12 @@ export class Gallery {
   }
   render(){
     const {radius,fit}=this.layout;
-    this.ring.style.transform=`translateZ(${-radius}px) scale(${fit*this.zoom}) rotateX(-7deg)`;
+    this.ring.style.transform=`translateZ(${-radius}px) scale(${fit*this.zoom}) rotateX(${this.layout.mobile?-24:-7}deg)`;
     this.onChange?.(this.frontIndex());this.ring.dataset.angle=this.angle.toFixed(5);this.ring.dataset.zoom=this.zoom.toFixed(4);
     this.cards.forEach((card,i)=>{
       const pose=cardPose(i,this.cards.length,this.angle,radius);
-      if(this.cards.length<=5){const face=Math.cos(pose.theta);pose.interactive=face>-.1;pose.opacity=face>=-.01?.45+.55*Math.max(0,face):.07;pose.theta=Math.atan2(Math.sin(pose.theta),Math.cos(pose.theta))*.55;}
+      if(this.cards.length<=5&&!this.layout.mobile){const face=Math.cos(pose.theta);pose.interactive=face>-.1;pose.opacity=face>=-.01?.45+.55*Math.max(0,face):.07;pose.theta=Math.atan2(Math.sin(pose.theta),Math.cos(pose.theta))*.55;}
+      if(this.layout.mobile){pose.opacity=pose.facing>0?.65+.35*pose.facing:.24+.12*(1+pose.facing);}
       card.style.transform=`translate3d(${pose.x}px,0,${pose.z}px) rotateY(${pose.theta}rad)`;
       card.style.opacity=pose.opacity;
       card.style.pointerEvents=pose.interactive?'auto':'none';
