@@ -1,11 +1,16 @@
 # Orbit Photo Gallery Skill
 
-把一堆旅行照片，整理成一本可以用手势翻看的网页相册。
+**装好夸克网盘 Skill，再安装这个 Skill。说出一个相册名称，让 AI 直接为你做出旅行记忆网站。**
+
+> 帮我把夸克网盘里的「云南旅行」相册整理成旅行记忆。
+
+智能体会读取这个相册，筛选照片、去重分类、写日记，然后直接编写并运行网站，给你一个能打开的预览。你不需要先手动下载照片、填写选片清单，也不需要会写代码。
 
 **分类圆环 → 横向照片长卷 → 完整照片与日记**。米白背景、轻阴影和留白，支持鼠标、触屏、键盘以及浏览器本地手势识别。
 
-A reusable agent skill for curated photo galleries with a CSS 3D category ring,
-horizontal photo strips and on-device hand gestures. No AI API key required.
+Install and authorize the Quark Drive skill, then install this skill. Name an
+album and ask your coding agent to turn it into a travel-memory website. The
+agent retrieves the photos, curates them, writes the site and starts a preview.
 
 ## 能做什么
 
@@ -18,21 +23,45 @@ horizontal photo strips and on-device hand gestures. No AI API key required.
 
 选片审美由使用 Skill 的视觉模型或人完成，脚本不会把简单清晰度分数当作“最佳表情”。
 
-## 安装 Skill（Codex）
+## 安装与使用
+
+### 1. 安装并授权夸克网盘 Skill
+
+先在支持 Skill、代码执行和看图能力的智能体环境中安装 [夸克网盘官方 Skill](https://pdds.quark.cn/download/stfile/uu66xuuuuuvyuw8wx/quarkclouddrive-1.0.20.zip)，按它的引导完成自己的账号授权。已经安装并授权的用户不需要重复操作。
+
+### 2. 安装 Orbit 旅行记忆
+
+把这个仓库链接发给你的智能体，让它安装为 Skill：
+
+> 请安装这个 Skill：https://github.com/panggungunvibe/orbit-photo-gallery-skill
+
+Codex 用户也可以手动安装：
 
 ```bash
 git clone https://github.com/panggungunvibe/orbit-photo-gallery-skill.git ~/.codex/skills/orbit-photo-gallery
 ```
 
-重新加载 Skill 后，可以说：
+### 3. 说出你想制作的相册
 
-> 使用 $orbit-photo-gallery，把这个文件夹里的旅行照片整理成交互相册。优先竖图，连拍选一张，分类简单一点。
+重新加载 Skill 后，直接说：
 
-> 使用 $orbit-photo-gallery，为现有相册加入这批照片，跨批次去重，保留原来的日记。
+> 帮我把夸克网盘里的「云南旅行」相册整理成旅行记忆。
 
-其他支持 `SKILL.md` 的工具可把仓库放入对应的 Skill 目录。网盘连接器不是必须依赖：可以直接用本地照片。网盘素材需使用者自行授权自己的连接工具。
+或者明确指定 Skill：
 
-## 先跑示例
+> 使用 $orbit-photo-gallery，把夸克网盘里的「毕业旅行」做成旅行记忆网站。
+
+之后新增照片，可以继续说：
+
+> 这个相册又更新了，帮我更新旅行记忆，重复照片只留一张。
+
+智能体会完成下载、看图、选片、分类、文案、coding、测试和启动预览。只有相册重名、范围不明或需要账号授权时，才需要你补充信息。不会修改网盘原片，也不会自动公开你的照片。
+
+本 Skill 提供工作流、工具脚本和网站模板；需要由能读取 Skill、调用夸克能力、查看图片和执行代码的智能体运行，不是夸克网盘客户端内的按钮或独立手机 App。运行环境需 Node.js 20+、Python 3.10+；工程初始化与依赖准备交给智能体处理。明确提供本地照片时也可使用，但无需为正常的夸克流程手动下载照片。
+
+## 给开发者：运行示例
+
+以下命令用于手动体验或二次开发，正常用户只需要上面的自然语言请求。
 
 需要 Node.js 20+、Python 3.10+。示例使用原创几何 SVG，**不含任何私人照片或参考视频素材**。
 
@@ -53,7 +82,7 @@ npm run setup:hands
 
 这会从 Google 官方下载模型并校验 SHA-256；随后在页面点击「开启手势控制」。需 HTTPS 或 localhost。视频帧在浏览器本地处理，关闭即释放摄像头。
 
-## 换成自己的照片
+## 给开发者：手动导入本地照片
 
 先在仓库根目录创建 Python 虚拟环境：
 
