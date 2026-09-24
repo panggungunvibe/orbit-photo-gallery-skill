@@ -8,6 +8,8 @@ or third-party packages/models.
   included in that package. Upstream: https://github.com/google-ai-edge/mediapipe
 - Vite and its transitive dependencies are installed through npm; their individual
   license files apply. Upstream: https://github.com/vitejs/vite
+- `fflate` is installed through npm for ZIP export (MIT).
+  Upstream: https://github.com/101arrowz/fflate
 - Pillow is installed separately with pip and retains its own license.
   Upstream: https://github.com/python-pillow/Pillow
 - The optional Hand Landmarker model is **not redistributed** in this repository.

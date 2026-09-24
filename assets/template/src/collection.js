@@ -23,6 +23,7 @@ export class Collection {
     });
     this.track.scrollLeft=this.positions.get(category.id)||0;this.target=this.track.scrollLeft;this.updateProgress();this.track.focus({preventScroll:true});
   }
+  setZoom(z){this.targetZoom=Math.max(.65,Math.min(1.3,z));this.track.style.setProperty("--collection-zoom",this.targetZoom);this.updateProgress();}
   close(){this.positions.set(this.category.id,this.track.scrollLeft);cancelAnimationFrame(this.frame);this.frame=0;this.el.hidden=true;}
   move(delta){this.target=Math.max(0,Math.min(this.track.scrollWidth-this.track.clientWidth,this.target+delta));if(!this.frame)this.frame=requestAnimationFrame(()=>this.tick());}
   tick(){this.frame=0;const gap=this.target-this.track.scrollLeft;this.track.scrollLeft+=gap*(matchMedia('(prefers-reduced-motion: reduce)').matches?1:.2);if(Math.abs(gap)>1)this.frame=requestAnimationFrame(()=>this.tick());else this.track.scrollLeft=this.target;}

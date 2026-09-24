@@ -9,15 +9,21 @@ def slug(value):
     if not isinstance(value,str) or not re.fullmatch(r'[a-z0-9][a-z0-9-]{0,63}',value):raise ValueError(f'Invalid id: {value!r}')
     return value
 
-def run(manifest,project):
-    manifest=manifest.resolve();project=project.resolve();data=json.loads(manifest.read_text(encoding='utf8'))
-    if not (project/'src/main.js').is_file():raise ValueError('Project must be an existing scaffolded Orbit template.')
+def run(manifest,project=None,check_only=False):
+    manifest=manifest.resolve();project=project.resolve() if project else None;data=json.loads(manifest.read_text(encoding='utf8'))
+    if not check_only and (project is None or not (project/'src/main.js').is_file()):raise ValueError('Project must be an existing scaffolded Orbit template.')
     categories=data['categories'];photos=data['photos']
     if not categories or not photos:raise ValueError('Categories and photos cannot be empty.')
     groups={slug(c['id']):c for c in categories}
     if len(groups)!=len(categories):raise ValueError('Duplicate category id.')
     for c in categories:
         if not isinstance(c.get('title'),str) or not c['title'].strip():raise ValueError('Category title is required.')
+    if len(groups)<5:
+        raise ValueError('网盘素材不足以自然形成至少 5 类，请补充不同场景或类型的照片后再整理；不要硬拆类别或重复用图凑数。')
+    titles=[c['title'].strip() for c in categories]
+    if len(set(titles))!=len(titles):raise ValueError('Category titles must be distinct; do not split one category to meet the minimum.')
+    for group in groups:
+        if not any(photo.get('group')==group for photo in photos):raise ValueError(f'Empty category: {group}')
     seen_ids=set();seen_pixels=set();arts=[]
     with tempfile.TemporaryDirectory() as temp:
         temp=Path(temp)
@@ -45,6 +51,9 @@ def run(manifest,project):
             subset=[a for a in arts if a['group']==group]
             if not subset:raise ValueError(f'Empty category: {group}')
             if sum(a['cover'] for a in subset)>1:raise ValueError(f'Multiple covers for {group}')
+        if check_only:
+            print(f'Preflight passed: {len(arts)} unique portrait photos in {len(groups)} nonempty categories. No project files written.')
+            return
         # No project writes occur until the complete selection has passed validation.
         target=project/'public/photos';target.mkdir(parents=True,exist_ok=True)
         for file in temp.iterdir():shutil.copy2(file,target/file.name)
@@ -60,7 +69,7 @@ def run(manifest,project):
     print(f'Imported {len(arts)} unique photos into {len(groups)} categories. Originals unchanged.')
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('manifest',type=Path);p.add_argument('--project',type=Path,required=True);a=p.parse_args()
-    try:run(a.manifest,a.project)
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('manifest',type=Path);p.add_argument('--project',type=Path);p.add_argument('--check',action='store_true',help='Validate before creating a website; no project files are written.');a=p.parse_args()
+    try:run(a.manifest,a.project,check_only=a.check)
     except (ValueError,KeyError,OSError,RuntimeError) as e:p.exit(1,f'Import failed: {e}\n')
 if __name__=='__main__':main()

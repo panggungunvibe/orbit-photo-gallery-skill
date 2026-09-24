@@ -1,25 +1,40 @@
-# 模板维护
+# 网站模板与验收
 
-- `src/artworks.js`：照片数组。`id,title,description,group,category,image,width,height,alt,cover` 为核心字段。
-- `src/categories.js`：分组、封面和顺序。每张入选照片必须出现在且只出现在一个类目中。
-- `src/gallery.js` / `geometry.js`：CSS 3D 圆环、拖动惯性、缩放、键盘。
-- `src/collection.js`：横向长卷与各类滚动位置。拖动达到阈值后取消点击，手势明确激活时解除此状态。
-- `src/main.js`：圆环、长卷、详情路由及手势适配器。隐藏圆环时不要让圆环键盘处理器继续工作。
-- `src/gesture-engine.js`：关键点分类与停留选中；`hands.js`：摄像头生命周期、MediaPipe 与 DOM 命中。
-- `data-hand-action`：手势可选元素，包括分类、照片和返回按钮。详情展开时只有关闭目标可响应底层命中。
-- `src/style.css`：视觉与响应式。增加类目后要检查底部分类文字能否换行、不压住卡片或页脚。
+`assets/template/` 是完整可运行的通用实现，含原创 SVG 示例。通过五类素材预检后复制它，再导入真实照片；不从旧交互版本重新搭建。示例仅用于开发测试，不是用户旅行记忆的成品。
 
-在复制出的项目里运行：
+## 代码职责
+
+- `src/artworks.js`：照片数组，核心字段 `id,title,description,group,category,image,width,height,alt,cover`。保留稳定 id，有利于更新后维持收藏。
+- `src/categories.js`：分类、封面与顺序。一张照片只归一类。
+- `src/gallery.js` / `geometry.js`：CSS 3D 圆环、鼠标／触屏、键盘、缩放。隐藏圆环、打开详情或收藏弹窗时，不处理底层快捷键。
+- `src/collection.js`：长卷、真实比例、各类进度记忆。拖动防误点击；明确手势点击时解除拖动留下的阻断状态。
+- `src/main.js`：路由、居中详情、焦点管理和手势适配。手势移动直接改变可见角度／scrollLeft，不能复用鼠标缓动目标，否则停手后继续漂移。
+- `src/gesture-engine.js`：张掌滑动、单食指伸出／弯回、双手 X、掌心尺寸缩放；`hands.js`：模型、摄像头生命周期、识别反馈与当前中心目标选择。
+- `src/library.js`：收藏本地持久化、收藏列表、单张 JPG、分类 ZIP 和手机保存入口。使用 fflate 打包；下载来自网站精选图，不访问原网盘。
+- `src/style.css`：暖色光晕与轨道背景、居中大图、细字类目、手机响应式。
+- `scripts/check-categories.mjs`：构建门槛；至少五个非空且名称不同的类目。语义是否自然仍由 Skill 看图判断。
+
+## 下载与移动端
+
+桌面 ZIP：先准备 JPG，再按 `分类名/照片名-id.jpg` 打包。文件名去除路径分隔符，唯一 id 避免同名覆盖。全部与收藏 ZIP 都保留分类；空收藏不允许下载。失败可重试，不能声称失败的下载成功。
+
+手机：隐藏手势开关。照片先异步准备好，再由一次明确点击同步调用 `navigator.share({files})`，避免准备文件耗尽用户激活时限。先检查 `navigator.canShare({files})`。系统是否提供“存储图像”由浏览器／操作系统决定；支持分享不等于保证写入相册。取消时不报成功，批量不支持或失败时保留可长按图片与单张保存入口。不创建假“已保存相册”反馈。
+
+收藏存当前浏览器，不宣称账号同步。保留导入照片的稳定 id；新建网站若共用一个域名，应按相册为收藏存储设置独立 key。
+
+## 运行与验证
 
 ```bash
 npm ci
-npm run setup:hands  # 仅手势需要；下载模型到本项目
+npm run setup:hands
 npm run dev
 npm test
 npm run build
 npm run preview
 ```
 
-`evidence/interaction-check.html` 在开发服务器下可运行交互验收；测试面板使用合成手部关键点，并覆盖拒绝/取消摄像头的清理路径。实际摄像头识别的光线、距离和人体差异仍需要用户使用时验证。模板默认不上传画面；不要添加远端分析、埋点或上传而不向用户说明。
+在开发服务打开 `/evidence/interaction-check.html` 点击运行。包含点击与滚动分离、停手即停、手势缩放、交叉返回、相机拒绝与异步取消。用合成手部关键点，不能称为真人测试。
 
-更新数据后用生产预览复验，避免只看开发热更新。生产资源使用根路径，部署时放在域名根目录；若使用 GitHub Pages 仓库子路径，必须同时调整 Vite base、照片路径和 MediaPipe 模型/WASM 路径，不能仅更改 Vite base。
+桌面检查居中照片、收藏刷新持久化、取消收藏、空状态；实际下载全部和收藏 ZIP 并核对解压文件。手机至少检查窄屏布局、手势开关隐藏、圆环／长卷仍可用、详情滚动与保存入口。预览尺寸模拟不等于真实手机相册保存测试。
+
+模型不随仓库发布，`setup:hands` 从官方地址下载并校验。模板不上传摄像头画面。生产资源默认域名根路径；GitHub Pages 项目子路径部署需要同时适配 Vite base、图片和 MediaPipe 模型／WASM 路径，不能仅修改 Vite base。

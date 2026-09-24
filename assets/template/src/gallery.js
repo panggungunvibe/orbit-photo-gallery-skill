@@ -119,7 +119,7 @@ export class Gallery {
     }
   }
   keyDown(e){
-    if(this.el.hidden||e.target.closest('input,textarea,select')||!document.querySelector('#detail').hidden)return;
+    if(document.querySelector('dialog[open]')||this.el.hidden||e.target.closest('input,textarea,select')||!document.querySelector('#detail').hidden)return;
     if(e.target.closest('.gesture-controls'))return;
     if(e.key==='ArrowRight'||e.key==='ArrowLeft'){
       e.preventDefault();this.velocity=0;this.rotate((e.key==='ArrowRight'?-1:1)*TAU/this.cards.length);

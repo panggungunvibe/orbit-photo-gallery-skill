@@ -17,24 +17,21 @@ $('#run-checks').onclick=async()=>{
   gallery.el.dispatchEvent(ptr('pointerup',101,400,450));gallery.el.dispatchEvent(ptr('pointerup',102,720,450));
   gallery.setZoom(100);assert(gallery.targetZoom===1.85,'上限失效');gallery.setZoom(-1);assert(gallery.targetZoom===.6,'下限失效');gallery.reset();await sleep(650);
  });
- await test('手掌检测结果实际驱动环形画廊',async()=>{hands.engine.reset();const a=gallery.targetAngle;hands.process([hand()],100);hands.process([hand(undefined,.55)],150);assert(gallery.targetAngle<a,'手掌移动没有旋转');});
- await test('双手检测结果实际驱动画廊缩放',async()=>{hands.engine.reset();const z=gallery.targetZoom;hands.process([hand(undefined,.3),hand(undefined,.7)],200);hands.process([hand(undefined,.25),hand(undefined,.75)],250);assert(gallery.targetZoom>z,'双手没有缩放');});
- await test('食指停留命中分类并展开长卷',async()=>{
-  gallery.reset();await sleep(650);hands.engine.reset();hands.dwell.reset();
-  const card=gallery.cards[gallery.frontIndex()],box=card.getBoundingClientRect(),x=(box.left+box.right)/2/innerWidth,y=(box.top+box.bottom)/2/innerHeight;
-  const h=hand([true,false,false,false]);const dx=(.85-.7*x)-h[8].x,dy=(.1+.75*y)-h[8].y;h.forEach(p=>{p.x+=dx;p.y+=dy;});
-  for(let t=1000;t<=2100;t+=100)hands.process([h],t);
-  assert(!$('#collection').hidden&&gallery.el.hidden,'停留未打开分类');
-  $('#collection-back').click();assert($('#collection').hidden,'返回未关闭长卷');
+ const pinch=()=>{const h=hand([true,false,false,false]);h[4]={...h[8]};return h;};
+ const click=time=>{const h=hand([true,false,false,false]);hands.process([h],time);hands.process([h],time+180);hands.process([hand([false,false,false,false])],time+280);};
+ const cross=time=>{const a=hand(),b=hand();a[0]={x:.3,y:.8};a[12]={x:.7,y:.3};b[0]={x:.7,y:.8};b[12]={x:.3,y:.3};for(let t=time;t<=time+900;t+=100)hands.process([a,b],t);};
+ await test('单掌滑动旋转圆环',async()=>{hands.engine.reset();const a=gallery.targetAngle;hands.process([hand()],100);hands.process([hand(undefined,.55)],150);assert(gallery.targetAngle<a,'单掌未转');});
+ await test('手停立即停；握拳、捏合不点击',async()=>{hands.engine.reset();hands.process([hand()],300);hands.process([hand(undefined,.6)],400);const angle=gallery.angle;hands.process([hand(undefined,.6)],500);await sleep(200);assert(gallery.angle===angle&&gallery.angle===gallery.targetAngle,'停手仍漂移');hands.process([],600);assert(gallery.velocity===0&&!gallery.frame,'丢手仍运动');const z=gallery.targetZoom;hands.process([pinch()],700);hands.process([pinch()],800);hands.process([pinch()],900);hands.process([pinch()],1100);assert(gallery.targetZoom===z,'点击变缩放');assert(collection.el.hidden&&$('#detail').hidden,'捏合误点击');hands.process([hand([false,false,false,false])],1200);assert(collection.el.hidden,'握拳误点击');});
+ await test('单食指伸出后弯回打开分类',async()=>{gallery.reset();await sleep(650);hands.engine.reset();click(1200);assert(!collection.el.hidden,'未打开分类');$('#collection-back').click();});
+ await test('相同滑动浏览长卷，食指点按看图，交叉返回且保持不连跳',async()=>{
+ collection.track.style.width='500px';const i=gallery.artworks.findIndex(c=>c.photos.length>=3);gallery.cards[i].click();await sleep(100);hands.engine.reset();const angle=gallery.targetAngle;hands.process([hand()],2000);hands.process([hand(undefined,.65)],2100);await sleep(700);assert(collection.track.scrollLeft>20,'未滑动');assert(gallery.targetAngle===angle,'误转圆环');const saved=collection.track.scrollLeft;hands.process([hand(undefined,.65)],2200);await sleep(180);assert(collection.track.scrollLeft===saved&&!collection.frame,'长卷停手后漂移');
+ click(2400);assert(!$('#detail').hidden,'未打开照片');const target=collection.target;hands.process([hand()],2850);hands.process([hand(undefined,.7)],2950);assert(collection.target===target,'详情仍滚动');cross(3000);assert($('#detail').hidden,'X 未关详情');assert(!collection.el.hidden,'保持 X 连续返回');hands.process([hand()],4400);cross(4500);assert(collection.el.hidden,'X 未回圆环');gallery.cards[i].click();assert(Math.abs(collection.track.scrollLeft-saved)<2,'进度丢失');$('#collection-back').click();collection.track.style.width='';
  });
- await test('长卷手掌滑动、详情暂停、返回及进度记忆',async()=>{
-  const i=gallery.artworks.findIndex(c=>c.photos.length>=3);assert(i>=0,'缺少可滚动分类');gallery.cards[i].click();collection.track.style.width='450px';await sleep(100);
-  const before=gallery.targetAngle;hands.engine.reset();hands.process([hand()],3000);hands.process([hand(undefined,.65)],3100);await sleep(700);
-  assert(collection.track.scrollLeft>20,'手掌没有推动长卷');assert(gallery.targetAngle===before,'长卷操作误转动圆环');
-  const saved=collection.track.scrollLeft;collection.cards[0].click();const target=collection.target;hands.process([hand(undefined,.7)],3200);assert(collection.target===target,'详情打开时仍在滑动');$('#detail-close').click();
-  $('#collection-back').click();gallery.cards[i].click();assert(Math.abs(collection.track.scrollLeft-saved)<2,'分类进度丢失');
-  const pointAt=(el,time)=>{hands.engine.reset();hands.dwell.reset();const box=el.getBoundingClientRect(),x=(box.left+box.right)/2/innerWidth,y=(box.top+box.bottom)/2/innerHeight;const h=hand([true,false,false,false]);const dx=(.85-.7*x)-h[8].x,dy=(.1+.75*y)-h[8].y;h.forEach(p=>{p.x+=dx;p.y+=dy;});for(let t=time;t<=time+1100;t+=100)hands.process([h],t);};
-  const visible=collection.cards.find(c=>{const r=c.getBoundingClientRect();return r.left>100&&r.right<innerWidth;});assert(visible,'未找到可见照片');pointAt(visible,4000);assert(!$('#detail').hidden,'手势未打开照片');pointAt($('#detail-close'),5500);assert($('#detail').hidden,'手势未关闭照片');pointAt($('#collection-back'),7000);assert(collection.el.hidden,'手势未返回圆环');
+ await test('掌心远近缩放圆环、长卷和详情，停止后不漂移也不点击',async()=>{
+ const sized=k=>hand().map(p=>({...p,x:.5+(p.x-.5)*k,y:.6+(p.y-.6)*k}));
+ const zoom=(t)=>{hands.engine.reset();hands.process([sized(1)],t);hands.process([sized(1.12)],t+100);};
+ gallery.reset();await sleep(650);const angle=gallery.angle,z=gallery.zoom;zoom(9000);assert(gallery.zoom>z,'圆环未放大');assert(gallery.angle===angle,'缩放误转');const fixed=gallery.zoom;hands.process([sized(1.12)],9200);await sleep(150);assert(gallery.zoom===fixed,'停止后缩放漂移');hands.process([sized(.95)],9300);assert(gallery.zoom<fixed,'远离未缩小');
+ gallery.cards[0].click();const cz=collection.targetZoom;zoom(9500);assert(collection.targetZoom>cz,'长卷未缩放');assert($('#detail').hidden,'缩放误点击');collection.cards[0].click();zoom(10000);assert($('#detail-image').style.transform!=='scale(1)','照片未缩放');$('#detail-close').click();$('#collection-back').click();gallery.reset();collection.setZoom(1);
  });
  await test('减少动态效果：目标一帧到位，无惯性',async()=>{
   const old=gallery.reduced;gallery.reduced={matches:true};gallery.velocity=0;gallery.rotate(.8);await sleep(80);assert(Math.abs(gallery.angle-gallery.targetAngle)<1e-6,'仍有插值动画');gallery.reduced=old;gallery.reset();

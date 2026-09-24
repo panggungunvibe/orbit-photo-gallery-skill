@@ -64,37 +64,38 @@ export class HandController {
       this.showError(message);
     }
   }
-  status(text){if($('#camera-status').textContent!==text)$('#camera-status').textContent=text;}
+  status(text){if($('#camera-status').textContent!==text)$('#camera-status').textContent=text;const feedback=$('#gesture-feedback');if(feedback){feedback.textContent=text;feedback.hidden=!(this.active||this.starting);}}
   showError(text){$('#camera-error').textContent=text;$('#camera-error').hidden=false;}
   process(hands,timestamp){
     drawHands(this.canvas,hands);
-    const action=this.engine.update(hands,timestamp);
-    this.cursor.hidden=action.mode!=='point';
+    const detailOpen=!$('#detail').hidden;
+    const view=detailOpen?'detail':$('#collection').hidden?'ring':'collection';
+    const action=this.engine.update(hands,timestamp,view);
+    this.cursor.hidden=true;
+    this.gallery.stopMotion?.();
     document.querySelectorAll('.hand-hover').forEach(c=>c.classList.remove('hand-hover'));
-    if(action.mode==='rotate'&&document.querySelector('#detail').hidden){this.gallery.velocity=0;this.gallery.rotate(action.delta);this.status(document.querySelector('#collection').hidden?'手掌左右移动 · 旋转圆环':'手掌左右移动 · 滑动长卷');}
-    else if(action.mode==='zoom'&&document.querySelector('#detail').hidden){this.gallery.velocity=0;this.gallery.setZoom(this.gallery.targetZoom*action.ratio);this.status('双手拉开 / 靠近 · 缩放');}
-    else if(action.mode==='point'){
-      const x=action.cursor.x*innerWidth,y=action.cursor.y*innerHeight;
-      this.cursor.style.transform=`translate(${x}px,${y}px)`;
-      const hit=document.elementFromPoint(x,y);const card=hit?.closest('[data-hand-action]');
-      const detailOpen=!document.querySelector('#detail').hidden;
-      const target=card&&(!detailOpen||card.id==='detail-close')?card.dataset.handAction:null;
-      if(target)card.classList.add('hand-hover');
-      const dwell=this.dwell.update(target,timestamp,action.select);
-      this.cursor.querySelector('.cursor-progress').style.strokeDashoffset=100.53*(1-dwell.progress);
-      if(dwell.activate&&target)this.onActivate(card);
-      this.status(target===null?'食指指向作品 · 停留打开':dwell.activate?'已选中作品':'保持指向 · 即将打开');
-    }else this.status(action.mode==='none'?'将手掌放在镜头前':'张开手掌，或伸出食指');
-    if(action.mode!=='point'){this.dwell.reset();this.cursor.querySelector('.cursor-progress').style.strokeDashoffset=100.53;}
+    if(action.mode==='back'){
+      this.status('双手交叉成 X · 保持片刻返回');
+      if(action.activate){const dialog=document.querySelector('dialog[open]');if(dialog)dialog.close();else this.onClose();}
+      return;
+    }
+    if(document.querySelector('dialog[open]'))return;
+    if(action.mode==='rotate'&&!detailOpen){this.gallery.velocity=0;this.gallery.rotate(action.delta);this.status(view==='ring'?'张掌左右滑动 · 转动圆环':'张掌左右滑动 · 浏览长卷');}
+    else if(action.mode==='zoom'){this.gallery.setZoom(this.gallery.targetZoom*action.ratio);this.status('五指张开 · 靠近放大 / 远离缩小');}
+    else if(action.mode==='point'){if(!detailOpen)this.gallery.currentCard()?.classList.add('hand-hover');this.status(action.phase==='ready'?'可以点按 · 把食指弯回即可打开':'已看到食指 · 请短暂停稳');}
+    else if(action.mode==='click'&&!detailOpen){const card=this.gallery.currentCard();if(card)this.onActivate(card);this.status('已打开 · 双手交叉成 X 返回');}
+    else this.status(hands.length===2?'已看到双手 · 手腕交叉成 X 返回':hands.length===1?'张掌连续滑动 · 手停即停 · 食指点按':'未看到手 · 已停止滚动');
+
   }
+
   stop(){
     ++this.token;this.active=false;this.starting=false;cancelAnimationFrame(this.frame);
     this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;
     this.video.pause();this.video.srcObject=null;
-    this.detector?.close();this.detector=null;this.engine.reset();this.dwell.reset();
+    this.detector?.close();this.detector=null;this.engine.reset();this.dwell.reset();this.selectionLocked=false;
     this.canvas.getContext('2d').clearRect(0,0,this.canvas.width,this.canvas.height);
     this.cursor.hidden=true;document.querySelectorAll('.hand-hover').forEach(c=>c.classList.remove('hand-hover'));
     this.button.setAttribute('aria-pressed','false');this.button.setAttribute('aria-busy','false');this.button.querySelector('span').textContent='开启手势控制';
-    $('#camera-panel').hidden=true;$('#hand-hint').hidden=true;
+    $('#camera-panel').hidden=true;$('#hand-hint').hidden=true;if($('#gesture-feedback'))$('#gesture-feedback').hidden=true;
   }
 }
