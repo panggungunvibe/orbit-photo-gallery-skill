@@ -20,6 +20,8 @@ def run(manifest,project=None,check_only=False):
         if not isinstance(c.get('title'),str) or not c['title'].strip():raise ValueError('Category title is required.')
     if len(groups)<5:
         raise ValueError('网盘素材不足以自然形成至少 5 类，请补充不同场景或类型的照片后再整理；不要硬拆类别或重复用图凑数。')
+    if len(groups)>10:
+        raise ValueError('分类最多 10 类，请按语义合并相近主题，优先控制在 6–8 类；保留照片在长卷中，不要直接丢弃多出的类目。')
     titles=[c['title'].strip() for c in categories]
     if len(set(titles))!=len(titles):raise ValueError('Category titles must be distinct; do not split one category to meet the minimum.')
     for group in groups:

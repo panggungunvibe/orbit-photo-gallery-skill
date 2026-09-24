@@ -62,7 +62,7 @@ test('dwell requires continuous targeting, fires only once, resets on exit',()=>
  assert.equal(d.update(4,800).progress,0);assert.equal(d.update(4,1701).activate,true);assert.equal(d.update(4,2800).activate,false);
  d.update(null,3000);assert.equal(d.update(4,3001).activate,false);assert.equal(d.update(4,3902).activate,true);
 });
-test('each selected photo belongs to exactly one nonempty category with a valid cover',()=>{assert.ok(categories.length>=5);assert.deepEqual(categories.flatMap(c=>c.photos.map(p=>p.id)).sort(),artworks.map(p=>p.id).sort());categories.forEach(c=>{assert.ok(c.photos.some(p=>p.image===c.image));});});
+test('each selected photo belongs to exactly one nonempty category with a valid cover',()=>{assert.ok(categories.length>=5&&categories.length<=10);assert.deepEqual(categories.flatMap(c=>c.photos.map(p=>p.id)).sort(),artworks.map(p=>p.id).sort());categories.forEach(c=>{assert.ok(c.photos.some(p=>p.image===c.image));});});
 
 test('photos never repeat across categories, ids or identical web files',()=>{
  for(const field of ['id','image'])assert.equal(new Set(artworks.map(a=>a[field])).size,artworks.length);
