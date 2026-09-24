@@ -1,0 +1,24 @@
+{
+  "name": "orbit-photo-gallery",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0 --port 4173",
+    "test": "node --test tests/*.test.js",
+    "postinstall": "node scripts/copy-vision.mjs",
+    "setup:hands": "node scripts/setup-hands.mjs"
+  },
+  "dependencies": {
+    "@mediapipe/tasks-vision": "0.10.22-rc.20250304"
+  },
+  "devDependencies": {
+    "vite": "^6.1.0"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  }
+}

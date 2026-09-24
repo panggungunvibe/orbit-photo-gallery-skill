@@ -1,0 +1,11 @@
+**/node_modules/
+**/dist/
+**/.DS_Store
+**/__pycache__/
+**/.venv/
+**/public/photos/
+**/public/models/
+**/public/vision/
+**/.env*
+**/.quarkclouddrive/
+*.log

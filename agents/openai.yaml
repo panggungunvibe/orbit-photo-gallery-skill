@@ -1,0 +1,4 @@
+interface:
+  display_name: "Orbit 交互相册"
+  short_description: "筛选旅行照片，制作带分类圆环、照片长卷和本地手势控制的交互相册"
+  default_prompt: "使用 $orbit-photo-gallery 把我的照片整理成分类圆环与照片长卷，保持简洁的视觉风格。"

@@ -1,0 +1,2 @@
+Pillow>=10.0,<13
+# Optional for HEIC/HEIF outside macOS: pillow-heif>=0.18

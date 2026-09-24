@@ -1,0 +1,7 @@
+node_modules/
+dist/
+public/photos/
+public/models/
+public/vision/
+.env*
+.DS_Store

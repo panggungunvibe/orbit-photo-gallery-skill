@@ -1,0 +1,60 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>画廊交互验收</title></head><body><section id="qa-controls" style="position:fixed;top:100px;left:15px;z-index:999;background:#fffefaed;padding:15px;max-width:430px;max-height:70vh;overflow:auto;border:1px solid #ccc;border-radius:10px;font:12px system-ui;pointer-events:none"><button id="run-checks" style="pointer-events:auto">运行交互验收</button><p id="qa-status">加载中</p><pre id="qa-log" style="white-space:pre-wrap"></pre></section><script type="module">
+const html=await fetch('/index.html').then(r=>r.text());const doc=new DOMParser().parseFromString(html,'text/html');document.body.append(doc.querySelector('#app'));
+const {gallery,hands,collection}=await import('/src/main.js');const $=s=>document.querySelector(s),sleep=ms=>new Promise(r=>setTimeout(r,ms));
+$('#qa-status').textContent='准备就绪';
+const assert=(condition,message)=>{if(!condition)throw Error(message);};
+const ptr=(type,id,x,y)=>new PointerEvent(type,{bubbles:true,pointerId:id,pointerType:'touch',button:0,clientX:x,clientY:y});
+function hand(extended=[true,true,true,true],x=.5){const h=Array.from({length:21},()=>({x,y:.6,z:0}));h[0]={x,y:.85,z:0};h[4]={x:x-.22,y:.55,z:0};[5,9,13,17].forEach((base,i)=>{const fx=x+(i-1.5)*.055;h[base]={x:fx,y:.62,z:0};h[base+1]={x:fx,y:.47,z:0};h[base+2]={x:fx,y:extended[i]?.36:.65,z:0};h[base+3]={x:fx,y:extended[i]?.23:.7,z:0};});return h;}
+$('#run-checks').onclick=async()=>{
+ $('#run-checks').disabled=true;$('#qa-log').textContent='';let passed=0,failed=0;
+ const test=async(name,fn)=>{try{await fn();passed++;$('#qa-log').textContent+=`PASS ${name}\n`;}catch(e){failed++;$('#qa-log').textContent+=`FAIL ${name}: ${e.message}\n`;}};
+ await test('原生双指事件驱动缩放，范围约束有效',async()=>{
+  const a=gallery.targetZoom;
+  // Synthetic pointer captures lack a native active pointer; override capture only on this test target.
+  gallery.el.setPointerCapture=()=>{};
+  gallery.el.dispatchEvent(ptr('pointerdown',101,400,450));gallery.el.dispatchEvent(ptr('pointerdown',102,600,450));
+  gallery.el.dispatchEvent(ptr('pointermove',102,720,450));assert(gallery.targetZoom>a,'双指距离变化没有放大');
+  gallery.el.dispatchEvent(ptr('pointerup',101,400,450));gallery.el.dispatchEvent(ptr('pointerup',102,720,450));
+  gallery.setZoom(100);assert(gallery.targetZoom===1.85,'上限失效');gallery.setZoom(-1);assert(gallery.targetZoom===.6,'下限失效');gallery.reset();await sleep(650);
+ });
+ await test('手掌检测结果实际驱动环形画廊',async()=>{hands.engine.reset();const a=gallery.targetAngle;hands.process([hand()],100);hands.process([hand(undefined,.55)],150);assert(gallery.targetAngle<a,'手掌移动没有旋转');});
+ await test('双手检测结果实际驱动画廊缩放',async()=>{hands.engine.reset();const z=gallery.targetZoom;hands.process([hand(undefined,.3),hand(undefined,.7)],200);hands.process([hand(undefined,.25),hand(undefined,.75)],250);assert(gallery.targetZoom>z,'双手没有缩放');});
+ await test('食指停留命中分类并展开长卷',async()=>{
+  gallery.reset();await sleep(650);hands.engine.reset();hands.dwell.reset();
+  const card=gallery.cards[gallery.frontIndex()],box=card.getBoundingClientRect(),x=(box.left+box.right)/2/innerWidth,y=(box.top+box.bottom)/2/innerHeight;
+  const h=hand([true,false,false,false]);const dx=(.85-.7*x)-h[8].x,dy=(.1+.75*y)-h[8].y;h.forEach(p=>{p.x+=dx;p.y+=dy;});
+  for(let t=1000;t<=2100;t+=100)hands.process([h],t);
+  assert(!$('#collection').hidden&&gallery.el.hidden,'停留未打开分类');
+  $('#collection-back').click();assert($('#collection').hidden,'返回未关闭长卷');
+ });
+ await test('长卷手掌滑动、详情暂停、返回及进度记忆',async()=>{
+  const i=gallery.artworks.findIndex(c=>c.photos.length>=3);assert(i>=0,'缺少可滚动分类');gallery.cards[i].click();collection.track.style.width='450px';await sleep(100);
+  const before=gallery.targetAngle;hands.engine.reset();hands.process([hand()],3000);hands.process([hand(undefined,.65)],3100);await sleep(700);
+  assert(collection.track.scrollLeft>20,'手掌没有推动长卷');assert(gallery.targetAngle===before,'长卷操作误转动圆环');
+  const saved=collection.track.scrollLeft;collection.cards[0].click();const target=collection.target;hands.process([hand(undefined,.7)],3200);assert(collection.target===target,'详情打开时仍在滑动');$('#detail-close').click();
+  $('#collection-back').click();gallery.cards[i].click();assert(Math.abs(collection.track.scrollLeft-saved)<2,'分类进度丢失');
+  const pointAt=(el,time)=>{hands.engine.reset();hands.dwell.reset();const box=el.getBoundingClientRect(),x=(box.left+box.right)/2/innerWidth,y=(box.top+box.bottom)/2/innerHeight;const h=hand([true,false,false,false]);const dx=(.85-.7*x)-h[8].x,dy=(.1+.75*y)-h[8].y;h.forEach(p=>{p.x+=dx;p.y+=dy;});for(let t=time;t<=time+1100;t+=100)hands.process([h],t);};
+  const visible=collection.cards.find(c=>{const r=c.getBoundingClientRect();return r.left>100&&r.right<innerWidth;});assert(visible,'未找到可见照片');pointAt(visible,4000);assert(!$('#detail').hidden,'手势未打开照片');pointAt($('#detail-close'),5500);assert($('#detail').hidden,'手势未关闭照片');pointAt($('#collection-back'),7000);assert(collection.el.hidden,'手势未返回圆环');
+ });
+ await test('减少动态效果：目标一帧到位，无惯性',async()=>{
+  const old=gallery.reduced;gallery.reduced={matches:true};gallery.velocity=0;gallery.rotate(.8);await sleep(80);assert(Math.abs(gallery.angle-gallery.targetAngle)<1e-6,'仍有插值动画');gallery.reduced=old;gallery.reset();
+ });
+ await test('关闭手势会释放轨道、识别器、画面与指示点',async()=>{
+  let stopped=0,closed=0;hands.stream={getTracks:()=>[{stop:()=>stopped++},{stop:()=>stopped++}]};hands.detector={close:()=>closed++};hands.active=true;hands.stop();
+  assert(stopped===2&&closed===1,'未释放资源');assert(!hands.active&&$('#camera-video').srcObject===null&&$('#hand-cursor').hidden,'状态未复位');
+ });
+ await test('摄像头拒绝权限有明确反馈，普通浏览仍可用',async()=>{
+  const original=navigator.mediaDevices.getUserMedia;
+  navigator.mediaDevices.getUserMedia=async()=>{throw new DOMException('Test denied','NotAllowedError');};
+  try{await hands.start();assert(!$('#camera-error').hidden&&$('#camera-error').textContent.includes('未获得摄像头权限'),'未显示权限反馈');assert(!hands.active,'拒绝后仍为激活状态');const a=gallery.targetAngle;gallery.rotate(.5);assert(gallery.targetAngle!==a,'普通浏览失效');}
+  finally{navigator.mediaDevices.getUserMedia=original;}
+ });
+ await test('启动后立即取消，迟到的摄像头流仍被释放',async()=>{
+  const original=navigator.mediaDevices.getUserMedia;let resolve,stopped=0;
+  navigator.mediaDevices.getUserMedia=()=>new Promise(r=>resolve=r);
+  try{const start=hands.start();hands.stop();resolve({getTracks:()=>[{stop:()=>stopped++}]});await start;assert(stopped===1&&!hands.active,'异步取消未释放流');}
+  finally{navigator.mediaDevices.getUserMedia=original;}
+ });
+ $('#qa-status').textContent=`${failed?'FAIL':'PASS'} — ${passed} passed, ${failed} failed`;$('#run-checks').disabled=false;
+};
+</script></body></html>
